@@ -87,6 +87,31 @@ Falhas controladas permanecem em branches e não devem ser integradas.
 Para E4, aplique cenários 4 e 5 na mesma branch: o lote dispara o CT por evento.
 Ver [ADAPTACAO.md](ADAPTACAO.md) para links E1–E5 e limites.
 
+### Resultado da adaptação
+
+As cinco evidências foram executadas. O primeiro CT com drift e 150 iterações foi bloqueado
+por perder recall para o campeão ([PR #3](https://github.com/RafaellLobo/mlops-qualidade-industrial/pull/3)).
+Após autorização, compararam-se 150/300/500 iterações somente numa validação interna
+de 4.800/1.200 linhas de treino (seed 42); foram selecionadas 500.
+`python demo/selecionar_params.py` reproduz a seleção sem ler holdout ou lotes e grava
+`docs/selecao_validacao.json`. Para reproduzir E3, use os parâmetros e o lote do
+[PR #5](https://github.com/RafaellLobo/mlops-qualidade-industrial/pull/5): recall 0,9426 e precisão 0,9612,
+acima do recall 0,9356 do campeão no mesmo conjunto de 2.200 registros.
+O cenário 4 sozinho detecta drift, mas aprovação do portão depende do resultado medido.
+
+O campeão inicial e os parâmetros de 150 iterações permanecem na main e na imagem 1.0.0.
+As branches de evidência são preservadas, sem incorporar lotes de demonstração na main.
+O script de seleção não altera `params.yaml` automaticamente. Não há busca de parâmetros
+no CT: seus hiperparâmetros vêm do arquivo versionado no respectivo PR.
+
+| Evidência | Execução |
+|---|---|
+| E1 | [Actions](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45409481397) |
+| E2 | [Actions](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45409558492) |
+| E3 | [Actions](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45410898898) |
+| E4 | [Actions](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45410188783) |
+| E5 | [Actions](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45409892618) |
+
 ## API e container
 
 `GET /health`: estado, versão e métricas. `POST /predict`: lista `atributos` com exatamente
@@ -99,7 +124,8 @@ docker run --rm -p 8000:8000 ghcr.io/rafaelllobo/mlops-qualidade-industrial:1.0.
 python demo/smoke_test.py http://localhost:8000
 ```
 
-Após publicar, a visibilidade do pacote GHCR deve ser Public para permitir pull anônimo.
+A visibilidade do pacote GHCR foi verificada como **Public** em 24/11/2026; o pull anônimo
+e o smoke test local passaram. [Página do pacote](https://github.com/users/RafaellLobo/packages/container/package/mlops-qualidade-industrial).
 O repositório público por si só não garante a visibilidade pública do pacote.
 
 ## Atribuição e limites

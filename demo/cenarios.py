@@ -21,7 +21,7 @@ DESCRICAO = {
     1: "Bug no pré-processamento: remove a última coluna. Esperado: CI falha em test_codigo.",
     2: "Dados corrompidos na base de treino. Esperado: CI falha em test_dados.",
     3: "Hiperparâmetro ruim (poucas iterações). Esperado: CI falha em test_modelo (recall).",
-    4: "Lote novo com drift. Esperado: CI verde e CT dispara, retreina e o portão aprova.",
+    4: "Lote novo com drift. Esperado: CI verde; CT detecta drift, retreina e aplica o portão.",
     5: "class_weight extremo. Esperado: recall 1,0, precisão baixa, CI e portão do CT reprovam.",
 }
 

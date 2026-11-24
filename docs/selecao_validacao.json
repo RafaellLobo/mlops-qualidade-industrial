@@ -1,0 +1,75 @@
+{
+  "protocolo": "split estratificado 4800/1200 apenas de base_treino, random_state=42",
+  "criterio": "maior recall entre precisao>=0.90; desempate por precisao, depois menor max_iter",
+  "holdout_usado_na_selecao": false,
+  "resultados": [
+    {
+      "params": {
+        "semente": 42,
+        "modelo": {
+          "max_iter": 150,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 5,
+          "learning_rate": 0.1,
+          "l2_regularization": 1.0,
+          "class_weight": "balanced"
+        }
+      },
+      "validacao_interna": {
+        "recall_instavel": 0.9360313315926893,
+        "precisao_instavel": 0.9484126984126984,
+        "acuracia": 0.9266666666666666,
+        "n_amostras": 1200
+      }
+    },
+    {
+      "params": {
+        "semente": 42,
+        "modelo": {
+          "max_iter": 300,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 5,
+          "learning_rate": 0.1,
+          "l2_regularization": 1.0,
+          "class_weight": "balanced"
+        }
+      },
+      "validacao_interna": {
+        "recall_instavel": 0.9425587467362925,
+        "precisao_instavel": 0.9413298565840938,
+        "acuracia": 0.9258333333333333,
+        "n_amostras": 1200
+      }
+    },
+    {
+      "params": {
+        "semente": 42,
+        "modelo": {
+          "max_iter": 500,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 5,
+          "learning_rate": 0.1,
+          "l2_regularization": 1.0,
+          "class_weight": "balanced"
+        }
+      },
+      "validacao_interna": {
+        "recall_instavel": 0.9464751958224543,
+        "precisao_instavel": 0.9440104166666666,
+        "acuracia": 0.93,
+        "n_amostras": 1200
+      }
+    }
+  ],
+  "selecionado": {
+    "semente": 42,
+    "modelo": {
+      "max_iter": 500,
+      "max_leaf_nodes": 15,
+      "min_samples_leaf": 5,
+      "learning_rate": 0.1,
+      "l2_regularization": 1.0,
+      "class_weight": "balanced"
+    }
+  }
+}
