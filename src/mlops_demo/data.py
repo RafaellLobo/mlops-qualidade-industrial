@@ -8,23 +8,23 @@ Uso na linha de comando:
 
 import sys
 
+import numpy as np
 import pandas as pd
-from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
 from mlops_demo import config
 
 SEMENTE_DADOS = 7  # divisão fixa da base: não mude, ou o campeão perde a referência
-N_TREINO_BASE = 300
-N_HOLDOUT_BASE = 100
+N_TREINO_BASE = 6000
+N_HOLDOUT_BASE = 2000
 
 
 def carregar_dataset_completo() -> pd.DataFrame:
-    """Breast Cancer Wisconsin completo (569 linhas), com a coluna target."""
-    bruto = load_breast_cancer(as_frame=True)
-    df = bruto.frame.copy()
-    df.columns = [*config.FEATURES, config.ALVO]
-    return df
+    """Fonte UCI local e imutável; sem acesso à rede durante CI/CT."""
+    df = pd.read_csv(config.RAIZ / "data" / "source" / "Data_for_UCI_named.csv")
+    saida = df[config.FEATURES].copy()
+    saida[config.ALVO] = df["stabf"].map({"stable": 0, "unstable": 1})
+    return saida
 
 
 def dividir_dataset() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -45,6 +45,8 @@ def dividir_dataset() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
 def criar_base() -> None:
     """Grava a base de treino e o holdout fixo em data/raw/."""
+    if config.BASE_TREINO.exists() or config.BASE_HOLDOUT.exists():
+        raise FileExistsError("Bases já existem; preservadas para manter o protocolo.")
     base_treino, base_holdout, _ = dividir_dataset()
     config.DADOS_BRUTOS.mkdir(parents=True, exist_ok=True)
     config.DADOS_LOTES.mkdir(parents=True, exist_ok=True)
@@ -54,22 +56,28 @@ def criar_base() -> None:
 
 
 def aplicar_drift(df: pd.DataFrame, fator: float) -> pd.DataFrame:
-    """Simula equipamento recalibrado: raio e perímetro x fator, área x fator ao quadrado."""
-    saida = df.copy()
-    for coluna in config.COLUNAS_TAMANHO:
-        potencia = 2 if "area" in coluna else 1
-        saida[coluna] = saida[coluna] * (fator**potencia)
-    return saida
+    """Covariate shift por seleção: mais elasticidade, sem alterar valores/rótulos.
+
+    fator=0.75 seleciona o quartil superior da elasticidade média da reserva.
+    Não cria contrafactuais com rótulos incorretos.
+    """
+    if not 0 < fator <= 1:
+        raise ValueError("fator deve estar em (0, 1]")
+    if fator == 1:
+        return df.copy()
+    media = df[config.COLUNAS_ELASTICIDADE].mean(axis=1)
+    return df.loc[media >= media.quantile(fator)].copy()
 
 
-def gerar_lote(nome: str, n: int = 120, fator_drift: float = 1.0, semente: int = 1) -> str:
+def gerar_lote(nome: str, n: int = 400, fator_drift: float = 1.0, semente: int = 1) -> str:
     """Cria data/raw/lotes/<nome>.csv a partir da reserva, opcionalmente com drift."""
     _, _, reserva = dividir_dataset()
+    reserva = aplicar_drift(reserva, fator_drift)
     lote = reserva.sample(n=min(n, len(reserva)), random_state=semente).reset_index(drop=True)
-    if fator_drift != 1.0:
-        lote = aplicar_drift(lote, fator_drift)
     config.DADOS_LOTES.mkdir(parents=True, exist_ok=True)
     caminho = config.DADOS_LOTES / f"{nome}.csv"
+    if caminho.exists():
+        raise FileExistsError(f"Lote já existe: {caminho.name}")
     lote.to_csv(caminho, index=False)
     return str(caminho)
 
@@ -83,14 +91,27 @@ def validar_dataframe(df: pd.DataFrame) -> list[str]:
         extras = sorted(set(df.columns) - set(esperadas))
         problemas.append(f"esquema diferente do esperado (faltando={faltando}, extras={extras})")
         return problemas
-    nulos = int(df.isna().sum().sum())
-    if nulos:
-        problemas.append(f"{nulos} valores nulos")
+    if df.empty:
+        problemas.append("dataset vazio")
+    nao_numericas = [c for c in esperadas if not pd.api.types.is_numeric_dtype(df[c])]
+    if nao_numericas:
+        return [f"colunas não numéricas: {nao_numericas}"]
+    if df.isna().any().any():
+        problemas.append("valores nulos")
+    if not np.isfinite(df.to_numpy(dtype=float)).all():
+        problemas.append("valores não finitos")
     if not df[config.ALVO].isin([0, 1]).all():
         problemas.append("alvo com valores fora de {0, 1}")
-    negativos = [c for c in config.FEATURES if (df[c] < 0).any()]
-    if negativos:
-        problemas.append(f"valores negativos em {negativos[:3]}")
+    for c in config.FEATURES:
+        limites = (
+            (0.5, 10.0)
+            if c.startswith("tau")
+            else ((0.05, 1.0) if c.startswith("g") else ((1.5, 6.0) if c == "p1" else (-2.0, -0.5)))
+        )
+        if not df[c].between(*limites).all():
+            problemas.append(f"{c} fora da faixa {limites}")
+    if not np.allclose(df[["p1", "p2", "p3", "p4"]].sum(axis=1), 0, atol=1e-8):
+        problemas.append("balanço de potência inválido: soma de p1..p4 deve ser zero")
     return problemas
 
 

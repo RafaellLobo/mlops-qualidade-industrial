@@ -20,7 +20,7 @@ from mlops_demo.data import gerar_lote  # noqa: E402
 DESCRICAO = {
     1: "Bug no pré-processamento: remove a última coluna. Esperado: CI falha em test_codigo.",
     2: "Dados corrompidos na base de treino. Esperado: CI falha em test_dados.",
-    3: "Hiperparâmetro ruim (C muito pequeno). Esperado: CI falha em test_modelo (recall).",
+    3: "Hiperparâmetro ruim (poucas iterações). Esperado: CI falha em test_modelo (recall).",
     4: "Lote novo com drift. Esperado: CI verde e CT dispara, retreina e o portão aprova.",
     5: "class_weight extremo. Esperado: recall 1,0, precisão baixa, CI e portão do CT reprovam.",
 }
@@ -45,23 +45,27 @@ def cenario_1() -> None:
 def cenario_2() -> None:
     caminho = RAIZ / "data" / "raw" / "base_treino.csv"
     df = pd.read_csv(caminho)
-    df.loc[0:4, "mean radius"] = None
-    df.loc[5:7, "mean area"] = -10.0
+    df.loc[0:4, "tau1"] = None
+    df.loc[5:7, "g1"] = -10.0
     df.to_csv(caminho, index=False)
-    print("alterado: data/raw/base_treino.csv (5 nulos em mean radius, 3 áreas negativas)")
+    print("alterado: data/raw/base_treino.csv (5 nulos em tau1, 3 elasticidades negativas)")
 
 
 def cenario_3() -> None:
-    _substituir(RAIZ / "params.yaml", "C: 1.0", "C: 0.00005")
+    _substituir(RAIZ / "params.yaml", "max_iter: 150", "max_iter: 1")
 
 
 def cenario_4() -> None:
-    caminho = gerar_lote("lote_01", n=120, fator_drift=0.75, semente=1)
-    print("criado:", Path(caminho).relative_to(RAIZ), "(atributos de tamanho 25% menores)")
+    caminho = gerar_lote("lote_01", n=400, fator_drift=0.75, semente=1)
+    print(
+        "criado:",
+        Path(caminho).relative_to(RAIZ),
+        "(quartil superior da elasticidade g1..g4; rótulos preservados)",
+    )
 
 
 def cenario_5() -> None:
-    _substituir(RAIZ / "params.yaml", "class_weight: balanced", "class_weight: {0: 50, 1: 1}")
+    _substituir(RAIZ / "params.yaml", "class_weight: balanced", "class_weight: {0: 1, 1: 1000000}")
 
 
 CENARIOS = {1: cenario_1, 2: cenario_2, 3: cenario_3, 4: cenario_4, 5: cenario_5}

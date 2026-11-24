@@ -26,7 +26,7 @@ jobs:
           python-version: "3.11"
 
       - name: Instalar ruff
-        run: pip install ruff
+        run: pip install -c requirements-lock.txt ruff
 
       - name: Lint
         run: ruff check .
@@ -51,7 +51,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Instalar o projeto e as ferramentas de teste
-        run: pip install -e ".[dev]"
+        run: pip install -c requirements-lock.txt -e ".[dev]"
 
       - name: Validar os dados brutos
         run: python -m mlops_demo.data validar

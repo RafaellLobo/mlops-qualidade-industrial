@@ -7,9 +7,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # 1) dependências e código (camada que muda menos)
-COPY pyproject.toml ./
+COPY pyproject.toml requirements-lock.txt ./
 COPY src ./src
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir -c requirements-lock.txt .
 
 # 2) artefato do modelo campeão (camada que muda a cada promoção)
 COPY models/champion ./models/champion

@@ -51,7 +51,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Instalar o projeto com DVC
-        run: pip install -e ".[ct]"
+        run: pip install -c requirements-lock.txt -e ".[ct]"
 
       - name: Detectar drift (gatilho por evento)
         id: drift

@@ -18,27 +18,27 @@ def test_campeao_versionado_foi_certificado_pelo_portao():
     """O metrics.json do campeão registra o que o portão mediu ao aprová-lo e cumpre o contrato."""
     with open(config.METRICAS_CAMPEAO, encoding="utf-8") as arquivo:
         declaradas = json.load(arquivo)
-    assert declaradas["recall_maligno"] >= config.RECALL_MINIMO, declaradas
-    assert declaradas["precisao_maligna"] >= config.PRECISAO_MINIMA, declaradas
+    assert declaradas["recall_instavel"] >= config.RECALL_MINIMO, declaradas
+    assert declaradas["precisao_instavel"] >= config.PRECISAO_MINIMA, declaradas
 
 
 def test_campeao_versionado_nao_colapsou_na_base_de_referencia(campeao, base_holdout):
     """Sanidade: o artefato carrega, prevê e não perdeu o básico no holdout fixo.
 
-    O contrato de 0,90 é medido pelo portão, no conjunto de avaliação da época da promoção.
+    O contrato (recall 0,92; precisão 0,90) é medido pelo portão na avaliação da promoção.
     Depois que o modelo se adapta a dados novos, o holdout antigo pode cair um pouco.
     Por isso o piso aqui é menor.
     """
     metricas = avaliar(campeao, base_holdout)
-    assert metricas["recall_maligno"] >= config.PISO_SANIDADE, metricas
-    assert metricas["precisao_maligna"] >= config.PISO_SANIDADE, metricas
+    assert metricas["recall_instavel"] >= config.PISO_SANIDADE, metricas
+    assert metricas["precisao_instavel"] >= config.PISO_SANIDADE, metricas
 
 
 def test_treino_com_o_codigo_e_params_atuais_cumpre_o_contrato(modelo_atual, base_holdout):
     """Se alguém mexer no código ou no params.yaml, o CI treina de novo e confere os limiares."""
     metricas = avaliar(modelo_atual, base_holdout)
-    assert metricas["recall_maligno"] >= config.RECALL_MINIMO, metricas
-    assert metricas["precisao_maligna"] >= config.PRECISAO_MINIMA, metricas
+    assert metricas["recall_instavel"] >= config.RECALL_MINIMO, metricas
+    assert metricas["precisao_instavel"] >= config.PRECISAO_MINIMA, metricas
 
 
 def test_modelo_supera_o_baseline_ingenuo(modelo_atual, base_treino, base_holdout):
@@ -81,13 +81,17 @@ def test_invariancia_a_ruido_minimo(modelo_atual, xy_holdout):
     assert mudou <= 0.02
 
 
-def test_direcional_tumor_maior_nao_reduz_a_chance_de_maligno(modelo_atual, xy_holdout):
-    """Teste direcional: tumor maior não pode reduzir a probabilidade média de câncer."""
-    X_te, _ = xy_holdout
-    coluna = list(modelo_atual.classes_).index(config.CLASSE_MALIGNA)
-    maior = X_te.copy()
-    for c in config.COLUNAS_TAMANHO:
-        maior[c] = maior[c] * 1.10
-    antes = modelo_atual.predict_proba(X_te)[:, coluna].mean()
-    depois = modelo_atual.predict_proba(maior)[:, coluna].mean()
-    assert depois >= antes
+def test_direcional_elasticidade_maior_nao_reduz_risco(modelo_atual, xy_holdout):
+    X, _ = xy_holdout
+    coluna = list(modelo_atual.classes_).index(config.CLASSE_INSTAVEL)
+    maior = X.copy()
+    maior[config.COLUNAS_ELASTICIDADE] = (maior[config.COLUNAS_ELASTICIDADE] * 1.1).clip(upper=1.0)
+    antes = modelo_atual.predict_proba(X)[:, coluna]
+    depois = modelo_atual.predict_proba(maior)[:, coluna]
+    assert np.all(depois >= antes - 1e-12)
+
+
+def test_modelo_nao_recebe_indicador_stab_que_determina_rotulo(modelo_atual):
+    assert list(modelo_atual.feature_names_in_) == config.FEATURES
+    assert "stab" not in modelo_atual.feature_names_in_
+    assert "stabf" not in modelo_atual.feature_names_in_

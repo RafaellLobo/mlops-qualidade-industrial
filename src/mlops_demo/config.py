@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import yaml
-from sklearn.datasets import load_breast_cancer
 
 RAIZ = Path(__file__).resolve().parents[2]
 
@@ -27,19 +26,23 @@ RELATORIO_DRIFT = RAIZ / "reports" / "drift.md"
 PARAMS = RAIZ / "params.yaml"
 
 # esquema dos dados
-FEATURES = [str(nome) for nome in load_breast_cancer().feature_names]  # str puro, não numpy.str_
-ALVO = "target"
-# ATENÇÃO: no Breast Cancer do scikit-learn, 0 = MALIGNO e 1 = BENIGNO.
-CLASSE_MALIGNA = 0
-COLUNAS_TAMANHO = [c for c in FEATURES if any(p in c for p in ("radius", "perimeter", "area"))]
+FEATURES = [
+    *[f"tau{i}" for i in range(1, 5)],
+    *[f"p{i}" for i in range(1, 5)],
+    *[f"g{i}" for i in range(1, 5)],
+]
+ALVO = "instavel"
+# UCI: unstable = 1 (classe positiva), stable = 0. stab não é atributo.
+CLASSE_INSTAVEL = 1
+COLUNAS_ELASTICIDADE = [f"g{i}" for i in range(1, 5)]
 
 # limiares de qualidade (o "contrato" do modelo). Mudar aqui exige revisão em PR.
-RECALL_MINIMO = 0.90
+RECALL_MINIMO = 0.92
 PRECISAO_MINIMA = 0.90
 TOLERANCIA_CAMPEAO = 0.0  # o candidato não pode ter recall menor que o campeão
 PISO_SANIDADE = 0.80  # o campeão não pode colapsar na base de referência (holdout fixo)
 LIMITE_DRIFT_P = 0.01  # p-valor do teste KS
-MIN_FEATURES_DRIFT = 3  # gatilho do CT: quantos atributos com drift disparam o retreino
+MIN_FEATURES_DRIFT = 2  # gatilho do CT: quantos atributos com drift disparam o retreino
 
 
 def carregar_params() -> dict:

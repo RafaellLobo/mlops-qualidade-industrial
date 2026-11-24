@@ -11,26 +11,40 @@ from pathlib import Path
 import joblib
 import pandas as pd
 from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from mlops_demo import __version__, config
+from mlops_demo.data import validar_dataframe
 
 CAMINHO_MODELO = Path(os.environ.get("MODEL_PATH", config.MODELO_CAMPEAO))
 CAMINHO_METRICAS = CAMINHO_MODELO.with_name("metrics.json")
 
-app = FastAPI(title="Triagem de tumores (demo CI/CD/CT)", version=__version__)
+app = FastAPI(title="Estabilidade de rede elétrica (CI/CD/CT)", version=__version__)
 _modelo = joblib.load(CAMINHO_MODELO)
 
 
-class Exame(BaseModel):
-    """Os 30 atributos do exame, na mesma ordem do treino."""
+class EstadoRede(BaseModel):
+    """12 atributos: tau1..4, p1..4, g1..4, nesta ordem."""
 
-    atributos: list[float] = Field(min_length=30, max_length=30)
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    atributos: list[float] = Field(
+        min_length=12, max_length=12, description=", ".join(config.FEATURES)
+    )
+
+    @model_validator(mode="after")
+    def validar_estado(self):
+        df = pd.DataFrame([self.atributos], columns=config.FEATURES)
+        df[config.ALVO] = 0
+        problemas = validar_dataframe(df)
+        if problemas:
+            raise ValueError("; ".join(problemas))
+        return self
 
 
 class Predicao(BaseModel):
     classe: str
-    probabilidade_maligno: float
+    probabilidade_instavel: float
     versao_codigo: str
 
 
@@ -43,14 +57,14 @@ def saude() -> dict:
 
 
 @app.post("/predict", response_model=Predicao)
-def prever(exame: Exame) -> Predicao:
-    entrada = pd.DataFrame([exame.atributos], columns=config.FEATURES)
+def prever(estado: EstadoRede) -> Predicao:
+    entrada = pd.DataFrame([estado.atributos], columns=config.FEATURES)
     previsto = int(_modelo.predict(entrada)[0])
-    # a coluna da classe maligna (0) em predict_proba segue a ordem de classes_
-    coluna = list(_modelo.classes_).index(config.CLASSE_MALIGNA)
-    p_maligno = float(_modelo.predict_proba(entrada)[0][coluna])
+    # a coluna da classe instavel (1) em predict_proba segue a ordem de classes_
+    coluna = list(_modelo.classes_).index(config.CLASSE_INSTAVEL)
+    p_instavel = float(_modelo.predict_proba(entrada)[0][coluna])
     return Predicao(
-        classe="maligno" if previsto == config.CLASSE_MALIGNA else "benigno",
-        probabilidade_maligno=round(p_maligno, 4),
+        classe="instavel" if previsto == config.CLASSE_INSTAVEL else "estavel",
+        probabilidade_instavel=round(p_instavel, 4),
         versao_codigo=__version__,
     )

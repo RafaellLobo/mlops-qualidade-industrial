@@ -1,0 +1,13 @@
+{
+  "url": "https://archive.ics.uci.edu/static/public/471/electrical+grid+stability+simulated+data.zip",
+  "sha256": "7afc3154fed9cd65258b3403b60381fe6b0d832bf817a1ea4866395d05a84a83",
+  "seed": 7,
+  "n_train": 6000,
+  "n_holdout": 2000,
+  "n_reserve": 2000,
+  "positive_class": "unstable=1",
+  "excluded_features": [
+    "stab",
+    "stabf"
+  ]
+}
