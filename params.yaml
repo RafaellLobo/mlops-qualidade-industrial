@@ -1,7 +1,6 @@
-# Fixados antes da avaliação no holdout; não há busca de hiperparâmetros no teste.
 semente: 42
 modelo:
-  max_iter: 150
+  max_iter: 500
   max_leaf_nodes: 15
   min_samples_leaf: 5
   learning_rate: 0.1
