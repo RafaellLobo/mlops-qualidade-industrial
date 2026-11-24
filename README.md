@@ -20,7 +20,8 @@ Divisão estratificada fixa (semente 7): **6.000 treino / 2.000 holdout / 2.000 
 Sem sobreposição; reserva gera lotes, cada lote é dividido em metades treino/avaliação pelo DVC.
 Nenhuma busca de hiperparâmetros utiliza o holdout. O holdout é referência didática reutilizada
 pelo portão; produção exigiria avaliação final independente e renovação controlada da referência.
-Os lotes começam vazios; a evidência E3 fica em seu PR, sem incorporar a mudança na main.
+Os lotes começaram vazios na adaptação obrigatória. O desafio adicional incorpora na main
+o lote aprovado em E3: 200 registros entram no treino e 200 na avaliação, com divisão fixa.
 
 ## Contrato e modelo
 
@@ -30,7 +31,7 @@ Falso negativo é mais caro: uma instabilidade ignorada deixa de ser investigada
 Precisão limita investigações desnecessárias. São metas acadêmicas propostas antes da avaliação,
 sem equivalência a limites de segurança elétrica ou custos financeiros comprovados.
 
-HistGradientBoostingClassifier (150 iterações, semente 42) em pipeline scikit-learn,
+HistGradientBoostingClassifier (500 iterações, semente 42) em pipeline scikit-learn,
 com hiperparâmetros em `params.yaml`. Árvores dispensam StandardScaler; restrições monotônicas
 em g1..g4 explicitam o comportamento esperado e são testadas. Não se promete causalidade.
 Versões diretas fixadas no `pyproject.toml`; `requirements-lock.txt` registra a resolução
@@ -63,9 +64,9 @@ a fonte local dispensa rede. Para recriar intencionalmente o campeão: `python -
 | CD | tag v*.*.* | reutiliza CI; build; smoke no container; publicação GHCR |
 
 Actions configurado com escrita e permissão de abrir PRs; variável de repositório
-`PROMOCAO_AUTOMATICA=false`. Nenhum token é versionado: somente `GITHUB_TOKEN` do Actions.
-O desafio opcional de promoção automática não é ativado. Em PR, CT avalia sem promover.
-Em main/manual, candidato aprovado pode originar PR `ct/novo-campeao`, sujeito a revisão.
+`PROMOCAO_AUTOMATICA=true`. Nenhum token é versionado: somente `GITHUB_TOKEN` do Actions.
+O desafio adicional ativou a promoção automática na main sem proteção. Em PR, CT avalia sem promover.
+Na main, o candidato aprovado é promovido diretamente; o CT cria a tag e dispara o CD.
 
 Drift: KS p<0,01 em **pelo menos 2 dos 12 atributos**. O cenário 4 seleciona 400 registros
 do quartil superior de elasticidade média da reserva, sem modificar medições ou rótulos.
@@ -99,8 +100,10 @@ de 4.800/1.200 linhas de treino (seed 42); foram selecionadas 500.
 acima do recall 0,9356 do campeão no mesmo conjunto de 2.200 registros.
 O cenário 4 sozinho detecta drift, mas aprovação do portão depende do resultado medido.
 
-O campeão inicial e os parâmetros de 150 iterações permanecem na main e na imagem 1.0.0.
-As branches de evidência são preservadas, sem incorporar lotes de demonstração na main.
+O campeão inicial de 150 iterações permanece preservado na tag e imagem 1.0.0.
+No desafio adicional, a main recebeu o lote de E3 e parâmetros de 500 iterações;
+o CT promoveu automaticamente o candidato e publicou a versão 1.1.0.
+As branches e execuções das evidências obrigatórias foram preservadas.
 O script de seleção não altera `params.yaml` automaticamente. Não há busca de parâmetros
 no CT: seus hiperparâmetros vêm do arquivo versionado no respectivo PR.
 
@@ -120,13 +123,44 @@ Resposta: `classe` (estavel/instavel), `probabilidade_instavel` e `versao_codigo
 Entradas inválidas retornam HTTP 422.
 
 ```powershell
-docker run --rm -p 8000:8000 ghcr.io/rafaelllobo/mlops-qualidade-industrial:1.0.0
+docker run --rm -p 8000:8000 ghcr.io/rafaelllobo/mlops-qualidade-industrial:1.1.0
 python demo/smoke_test.py http://localhost:8000
 ```
 
 A visibilidade do pacote GHCR foi verificada como **Public** em 24/11/2026; o pull anônimo
 e o smoke test local passaram. [Página do pacote](https://github.com/users/RafaellLobo/packages/container/package/mlops-qualidade-industrial).
 O repositório público por si só não garante a visibilidade pública do pacote.
+
+
+## Desafio adicional: promoção automática concluída
+
+Configuração verificada: `PROMOCAO_AUTOMATICA=true`, main sem proteção/rulesets ativos,
+Actions com escrita de conteúdo e permissão de disparar workflows. A configuração já
+prevista no projeto foi usada; nenhum workflow precisou ser alterado.
+
+1. [PR #7](https://github.com/RafaellLobo/mlops-qualidade-industrial/pull/7): reutilizou exatamente lote e parâmetros aprovados em E3.
+2. [CT automático da main](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45414911766): detectou drift em g1..g4, reproduziu o DVC e aprovou o portão.
+3. [Commit do robô](https://github.com/RafaellLobo/mlops-qualidade-industrial/commit/a5f296f25e31ee8a989994975d1b400ebd347ea8): alterou somente `models/champion/`.
+4. [Tag v1.1.0](https://github.com/RafaellLobo/mlops-qualidade-industrial/tree/v1.1.0): criada pelo CT sobre esse mesmo commit.
+5. [CD disparado pelo CT](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45415087946): evento `workflow_dispatch`, ator `github-actions[bot]`,
+   CI, construção, smoke e publicação aprovados. O disparo explícito é necessário porque
+   a tag criada com `GITHUB_TOKEN` não inicia outro workflow por evento push.
+
+Candidato: recall 0.9426,
+precisão 0.9612, 2.200 amostras de avaliação;
+campeão anterior: recall 0.9356, mesmo conjunto.
+O treino usa 6.200 registros, sem mudar holdout, sementes ou limiares.
+Pull anônimo e smoke local da imagem 1.1.0 aprovados; digest em `docs/desafio_automatico.json`.
+
+**Vantagens:** reduz intervenção manual, mantém trilha de commit/tag/imagem e entrega
+rapidamente um modelo que cumpre o contrato. **Riscos:** main sem proteção e ausência
+de revisão humana permitem propagar falhas não cobertas pelo portão; métricas agregadas
+e holdout reutilizado não garantem segurança operacional. Em produção, usaríamos aprovação
+por ambiente, validação independente e processo de rollback. Aqui `true` permanece ativo
+para a demonstração; para retornar à revisão humana, definir a variável como `false`.
+
+O lote já está na main: não tente recriar `lote_01.csv`. Use o PR #7 para reprodução
+histórica. No cenário 4, um novo lote exige nome único e reserva não sobreposta.
 
 ## Atribuição e limites
 
