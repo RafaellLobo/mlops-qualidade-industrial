@@ -29,7 +29,7 @@ sem custo financeiro ou requisito de segurança real validado. Piso de sanidade 
 | `api.py`, `demo/smoke_test.py` | 12 entradas, validação física e resposta estavel/instavel |
 | `tests/test_{codigo,dados,modelo,api}.py` | camadas adaptadas e novos testes de seleção, balanço, vazamento e HTTP 422 |
 | `demo/cenarios.py` | cinco cenários próprios; falha de peso extremo usa classe 1 |
-| `models/champion/*` | primeiro campeão treinado somente na base de treino |
+| `models/champion/*` | inicial na base; desafio promove candidato treinado em base + metade do lote |
 | `dvc.yaml`, `dvc.lock` | invalidação por config e pipeline reproduzível |
 | `pyproject.toml`, `requirements-lock.txt`, workflows, `Dockerfile` | versões fixadas e compartilhadas |
 | `README.md`, `ADAPTACAO.md`, `docs/*` | domínio, reprodução, evidências, autoria e limites |
@@ -50,9 +50,17 @@ Seleção posterior autorizada: split interno 4.800/1.200 do treino, seed 42, op
 500 escolhidas por recall com precisão >=0,90, sem consultar holdout na seleção.
 No [PR #5](https://github.com/RafaellLobo/mlops-qualidade-industrial/pull/5), candidato recall 0,9426 / precisão 0,9612
 versus campeão recall 0,9356, em 2.200 amostras. E4: recall 0,9986 / precisão 0,7855;
-portão reprovou e o hash do campeão permaneceu igual. Main e imagem mantêm o campeão inicial.
+portão reprovou e o hash do campeão permaneceu igual. O campeão inicial permanece na versão 1.0.0; o desafio abaixo promove o candidato depois.
 [Pacote público 1.0.0](https://github.com/users/RafaellLobo/packages/container/package/mlops-qualidade-industrial):
 pull anônimo, container healthy e smoke local aprovados em 24/11/2026.
+
+
+**Desafio adicional (+5).** `PROMOCAO_AUTOMATICA=true`; main já estava sem proteção.
+O [PR #7](https://github.com/RafaellLobo/mlops-qualidade-industrial/pull/7) incorporou o lote e os parâmetros de 500 iterações já aprovados em E3.
+O [CT](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45414911766) aprovou o portão e fez o [commit do campeão](https://github.com/RafaellLobo/mlops-qualidade-industrial/commit/a5f296f25e31ee8a989994975d1b400ebd347ea8),
+criou a tag **v1.1.0** e disparou sozinho o [CD](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45415087946) como `github-actions[bot]`.
+CI, build, smoke e publicação aprovados; imagem pública **1.1.0** baixada sem credenciais e testada.
+Evidência completa: `docs/desafio_automatico.json`. Mantidos protocolo, holdout e limiares.
 
 **5. Limites e riscos.** O portão cobre duas métricas agregadas, não calibração, subgrupos,
 segurança ou causalidade. KS não prova degradação; múltiplos testes podem gerar alarmes.
@@ -60,7 +68,9 @@ Holdout reutilizado pelo gate não substitui teste final independente. Em produ�
 recall/precisão com rótulos atrasados, calibração, drift, balanço físico, prevalência, latência,
 erros e qualidade por faixa operacional. Reserva finita não deve ser reamostrada em lotes
 sobrepostos; promoção repetida exige rastrear amostras já vistas pelo campeão.
-Promoção automática permanece desligada e falhas controladas não são integradas à main.
+Promoção automática agora está ligada: acelera entrega e registra commit/tag/imagem, mas elimina
+revisão humana e depende de main sem proteção. Falhas não cobertas pelo portão podem ser publicadas;
+produção exigiria aprovação por ambiente e rollback. Falhas controladas não foram integradas.
 
 **6. Contribuições e IA.** Rafael Lobo: responsável pelo repositório, execução e entrega.
 Codex auxiliou a inspeção dos labs, escolha e preparação da fonte, implementação, testes,

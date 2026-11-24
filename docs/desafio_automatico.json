@@ -1,0 +1,146 @@
+{
+  "tag": "v1.1.0",
+  "tag_commit": "a5f296f25e31ee8a989994975d1b400ebd347ea8",
+  "tag_object_sha": "6e960c0492f8c9334a3b487867c8b3248de5a5e2",
+  "tagger": {
+    "name": "github-actions[bot]",
+    "email": "41898282+github-actions[bot]@users.noreply.github.com",
+    "date": "2026-11-24T14:31:40Z"
+  },
+  "ct": {
+    "id": 45414911766,
+    "html_url": "https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45414911766",
+    "event": "push",
+    "conclusion": "success",
+    "head_sha": "5738d3fc6e8fed758a708a49e01cc9ef3750c5c8",
+    "head_branch": "main",
+    "created_at": "2026-11-24T14:30:47Z",
+    "updated_at": "2026-11-24T14:31:47Z",
+    "actor": {
+      "login": "RafaellLobo",
+      "id": 218154902,
+      "node_id": "U_kgDODQDHlg",
+      "avatar_url": "https://avatars.githubusercontent.com/u/218154902?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/RafaellLobo",
+      "html_url": "https://github.com/RafaellLobo",
+      "followers_url": "https://api.github.com/users/RafaellLobo/followers",
+      "following_url": "https://api.github.com/users/RafaellLobo/following{/other_user}",
+      "gists_url": "https://api.github.com/users/RafaellLobo/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/RafaellLobo/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/RafaellLobo/subscriptions",
+      "organizations_url": "https://api.github.com/users/RafaellLobo/orgs",
+      "repos_url": "https://api.github.com/users/RafaellLobo/repos",
+      "events_url": "https://api.github.com/users/RafaellLobo/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/RafaellLobo/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    }
+  },
+  "cd": {
+    "id": 45415087946,
+    "html_url": "https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45415087946",
+    "event": "workflow_dispatch",
+    "conclusion": "success",
+    "head_sha": "a5f296f25e31ee8a989994975d1b400ebd347ea8",
+    "head_branch": "v1.1.0",
+    "created_at": "2026-11-24T14:31:43Z",
+    "updated_at": "2026-11-24T14:34:00Z",
+    "actor": {
+      "login": "github-actions[bot]",
+      "id": 41898282,
+      "node_id": "MDM6Qm90NDE4OTgyODI=",
+      "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/github-actions%5Bbot%5D",
+      "html_url": "https://github.com/apps/github-actions",
+      "followers_url": "https://api.github.com/users/github-actions%5Bbot%5D/followers",
+      "following_url": "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}",
+      "gists_url": "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions",
+      "organizations_url": "https://api.github.com/users/github-actions%5Bbot%5D/orgs",
+      "repos_url": "https://api.github.com/users/github-actions%5Bbot%5D/repos",
+      "events_url": "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/github-actions%5Bbot%5D/received_events",
+      "type": "Bot",
+      "user_view_type": "public",
+      "site_admin": false
+    }
+  },
+  "promotion_commit": {
+    "sha": "a5f296f25e31ee8a989994975d1b400ebd347ea8",
+    "message": "ct: promove novo modelo campeão (portão aprovado)",
+    "author": {
+      "name": "github-actions[bot]",
+      "email": "41898282+github-actions[bot]@users.noreply.github.com",
+      "date": "2026-11-24T14:31:38Z"
+    },
+    "files": [
+      "models/champion/metrics.json",
+      "models/champion/model.joblib"
+    ]
+  },
+  "gate": {
+    "aprovado": true,
+    "verificacoes": [
+      {
+        "regra": "recall instavel do candidato >= 0.92",
+        "ok": true,
+        "valor": 0.9426
+      },
+      {
+        "regra": "precisão instavel do candidato >= 0.90",
+        "ok": true,
+        "valor": 0.9612
+      },
+      {
+        "regra": "recall instavel do candidato >= recall do campeão (mesmo conjunto)",
+        "ok": true,
+        "valor": "0.9426 x 0.9356"
+      }
+    ],
+    "candidato": {
+      "recall_instavel": 0.942560553633218,
+      "precisao_instavel": 0.9611856033874383,
+      "acuracia": 0.9372727272727273,
+      "n_amostras": 2200
+    },
+    "campeao": {
+      "recall_instavel": 0.9356401384083045,
+      "precisao_instavel": 0.9602272727272727,
+      "acuracia": 0.9322727272727273,
+      "n_amostras": 2200
+    }
+  },
+  "before": {
+    "main_before": "ae98a28953f234aab52c624f3626b8c4142dc39c",
+    "champion_sha256_before": "277dc18c6d5d7d45c7ba2a101da77f43985eea046622e016ba7df4c9bcb92754",
+    "champion_git_blob_before": "8c41d514b0a526b851e8c40c2e4930798f0fea64",
+    "metrics_before": {
+      "recall_instavel": 0.9318181818181818,
+      "precisao_instavel": 0.9643146796431468,
+      "acuracia": 0.9345,
+      "n_amostras": 2000,
+      "origem": "base_treino.csv"
+    }
+  },
+  "champion_sha256_after": "d31f16cc4f9ceced2bcca612a9299e07a0a948eb2c9aca2dd17bc1b445f4a48d",
+  "historical_v1_0_0_preserved": true,
+  "promocao_automatica": "true",
+  "main_protected": false,
+  "image": "ghcr.io/rafaelllobo/mlops-qualidade-industrial:1.1.0",
+  "image_digest": "ghcr.io/rafaelllobo/mlops-qualidade-industrial@sha256:a40fba8396353842012aa2427c855601a19a4adddd0a92fc780ae347bf9af091",
+  "anonymous_pull": "passed",
+  "container_health": "healthy",
+  "smoke": "passed",
+  "served_champion_metrics": {
+    "recall_instavel": 0.942560553633218,
+    "precisao_instavel": 0.9611856033874383,
+    "acuracia": 0.9372727272727273,
+    "n_amostras": 2200,
+    "origem": "treinamento contínuo (CT)"
+  },
+  "local_probe_note": "Espera inicial com Invoke-RestMethod expirou; acesso direto 127.0.0.1 por curl e smoke Python aprovados, sem alterar imagem."
+}
