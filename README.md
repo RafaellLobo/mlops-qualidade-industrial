@@ -1,283 +1,112 @@
-# Projeto de demonstração: CI/CD/CT para ML
+# Estabilidade de rede elétrica — CI/CD/CT para ML
 
-Projeto pequeno, mas completo, que mostra como um modelo de machine learning é testado, retreinado e entregue de forma
-automática. Usa ferramentas reais: **GitHub Actions**, **pytest**, **ruff**, **DVC**, **FastAPI**, **Docker** e
-**GitHub Container Registry**.
+Adaptação individual de Rafael Lobo do projeto didático de
+[Wesley Santos](https://github.com/wesleyasantos/ci_cd_ct_mlops), sem fork e com histórico próprio.
+Objetivo: detectar **instabilidade** em uma rede elétrica simulada de quatro nós e apoiar
+a triagem de cenários por pesquisadores/engenheiros. Demonstração acadêmica; sem controle de rede real.
 
-O modelo é uma regressão logística que classifica tumores de mama (dataset Breast Cancer do scikit-learn).
-A classe de interesse é a **maligna** (rótulo `0`), então medimos **recall** e **precisão** dela.
+## Dados e protocolo
 
-## O que cada letra faz neste projeto
+[UCI Electrical Grid Stability Simulated Data](https://doi.org/10.24432/C5PG66),
+Vadim Arzamasov, 2018, **CC BY 4.0**, 10.000 simulações, 12 atributos numéricos, sem dados pessoais.
+Fonte original, atribuição e hash estão em `data/source/`.
 
-| Letra | Workflow | Quando dispara | O que faz |
-|---|---|---|---|
-| **CI** | `.github/workflows/ci.yml` | push na `main` e todo Pull Request | lint, testes de código, dados, modelo e API |
-| **CT** | `.github/workflows/ct.yml` | agenda semanal e execução manual (sempre retreinam); lote novo ou `params.yaml` alterado (retreinam só se houver drift) | detecta drift, retreina com DVC, aplica o portão de qualidade e propõe o novo campeão em um PR (ou, no modo automático, publica direto e cria a tag) |
-| **CD** | `.github/workflows/cd.yml` | tag `v*.*.*` (criada por uma pessoa ou pelo CT no modo automático) | roda o CI, constrói a imagem Docker, faz o teste de fumaça e publica no `ghcr.io` |
+Entradas na ordem: `tau1,tau2,tau3,tau4,p1,p2,p3,p4,g1,g2,g3,g4`.
+`tau`: tempo de reação; `p`: potência produzida/consumida; `g`: elasticidade.
+`p1` é positivo, consumidores `p2..p4` negativos e a soma deve ser zero.
+`stab` determina o rótulo e é **excluído**; `stabf` é convertido no alvo `instavel`: stable=0, unstable=1.
 
-## Estrutura
+Divisão estratificada fixa (semente 7): **6.000 treino / 2.000 holdout / 2.000 reserva**.
+Sem sobreposição; reserva gera lotes, cada lote é dividido em metades treino/avaliação pelo DVC.
+Nenhuma busca de hiperparâmetros utiliza o holdout. O holdout é referência didática reutilizada
+pelo portão; produção exigiria avaliação final independente e renovação controlada da referência.
+Os lotes começam vazios; a evidência E3 fica em seu PR, sem incorporar a mudança na main.
 
-```
-projeto_ci_cd_ct/
-  .github/workflows/     ci.yml, ct.yml, cd.yml
-  src/mlops_demo/        config, data, features, evaluate, train, gate, monitor, api
-  tests/                 test_codigo, test_dados, test_modelo, test_api
-  data/raw/              base_treino.csv, base_holdout.csv e lotes/ (lotes novos chegam aqui)
-  models/champion/       o modelo em produção (versionado no Git)
-  params.yaml            hiperparâmetros (mudou aqui? o CI treina de novo e confere os limiares)
-  dvc.yaml               pipeline: preparar e treinar
-  Dockerfile             imagem da API com o modelo campeão
-  demo/                  cenários de prática, gerador de lotes, teste de fumaça e execução local
-```
+## Contrato e modelo
 
-## Contrato de qualidade
+Classe positiva **1 = instável**. Recall **>=0,92**, precisão **>=0,90** e recall candidato
+**>= campeão no mesmo conjunto**, sem tolerância a regressão. Piso de sanidade do campeão: 0,80.
+Falso negativo é mais caro: uma instabilidade ignorada deixa de ser investigada.
+Precisão limita investigações desnecessárias. São metas acadêmicas propostas antes da avaliação,
+sem equivalência a limites de segurança elétrica ou custos financeiros comprovados.
 
-Definido em `src/mlops_demo/config.py`:
+HistGradientBoostingClassifier (150 iterações, semente 42) em pipeline scikit-learn,
+com hiperparâmetros em `params.yaml`. Árvores dispensam StandardScaler; restrições monotônicas
+em g1..g4 explicitam o comportamento esperado e são testadas. Não se promete causalidade.
+Versões diretas fixadas no `pyproject.toml`; `requirements-lock.txt` registra a resolução
+do ambiente, com marcador de plataforma para pywin32. Usado em CI, CT e Docker.
 
-- recall da classe maligna **>= 0,90**
-- precisão da classe maligna **>= 0,90** (sem ela, um modelo que chuta tudo como maligno teria recall 1,0)
-- o candidato não pode ter recall menor que o do campeão, medido **no mesmo conjunto**
+## Executar localmente (PowerShell, Python 3.11)
 
----
-
-# Passo a passo
-
-São três partes. A **Parte 1** roda tudo na sua máquina. A **Parte 2** leva o projeto para o seu GitHub. A **Parte 3**
-é a prática com cinco cenários.
-
-## Parte 1. Rodar na sua máquina (sem GitHub)
-
-Pré-requisitos: Python 3.10 ou superior e Git. Docker é opcional.
-
-**1. Crie e ative o ambiente virtual.**
-
-```bash
+```powershell
 python -m venv .venv
-source .venv/Scripts/activate        # Git Bash no Windows
-# PowerShell:  .venv\Scripts\Activate.ps1
-# Linux e macOS: source .venv/bin/activate
-```
-
-**2. Instale o projeto.**
-
-```bash
-pip install -e ".[dev,ct]"
-```
-
-**3. Rode o CI inteiro.** Deve terminar com todos os passos `[ok]`.
-
-```bash
+.\.venv\Scripts\Activate.ps1
+pip install -c requirements-lock.txt -e ".[dev,ct]"
 python demo/local.py ci
-```
-
-**4. Rode o CT inteiro** (drift, retreino com DVC e portão de qualidade, sem abrir PR).
-
-```bash
 python demo/local.py ct
-```
-
-**5. Suba a API e teste.**
-
-```bash
-uvicorn mlops_demo.api:app --reload
-# em outro terminal, com o ambiente ativo:
+uvicorn mlops_demo.api:app
+# outro terminal, ambiente ativo:
 python demo/smoke_test.py http://localhost:8000
 ```
 
-**6. (Opcional) Construa a imagem Docker.**
+Os CSVs e campeão já são versionados. `python -m mlops_demo.data base` só cria bases ausentes
+e recusa sobrescrever. Para reproduzir a divisão, use `dividir_dataset()` e compare os derivados;
+a fonte local dispensa rede. Para recriar intencionalmente o campeão: `python -m mlops_demo.train --campeao`.
+`dvc.lock` é versionado; o cache DVC é local e os dados pequenos ficam no Git.
 
-```bash
-docker build -t mlops-demo .
-docker run -p 8000:8000 mlops-demo
-```
+## Pipelines no GitHub
 
-> O `dvc repro` usa o `python` do PATH. Se o ambiente virtual não estiver ativo, ele falha com
-> `No module named 'mlops_demo'`.
-
-## Parte 2. Colocar o projeto no seu GitHub
-
-**1. Crie o repositório.** No GitHub, crie um repositório **público** e **vazio** (sem README). Repositório público
-tem Actions gratuito.
-
-**2. Configure o Git somente nesta pasta** (sem `--global`) e envie o projeto.
-
-```bash
-git init
-git config --local user.name  "Seu Nome"
-git config --local user.email "seu-email@exemplo.com"
-git config --local core.autocrlf false
-git add -A
-git remote add origin https://github.com/SEU_USUARIO/NOME_DO_REPOSITORIO.git
-git commit -m "projeto inicial"
-git push -u origin main
-```
-
-**3. Confirme o primeiro CI.** Abra a aba **Actions**. O CI roda sozinho e deve ficar verde nos três jobs
-(`Lint e formatação (ruff)`, `Testes (Python 3.11)` e `Testes (Python 3.12)`).
-
-**4. Libere o CT para abrir Pull Requests.** Em **Settings > Actions > General > Workflow permissions**:
-
-- selecione **Read and write permissions**
-- marque **Allow GitHub Actions to create and approve pull requests**
-- clique em **Save**
-
-Sem isso o CT cria a branch `ct/novo-campeao`, mas não abre o PR, e o resumo do run avisa o motivo.
-
-**5. Escolha como o CT promove um modelo novo.** É uma variável do repositório, e o melhor momento de criá-la é agora.
-Em **Settings > Secrets and variables > Actions**, abra a aba **Variables** (não a de Secrets), clique em
-**New repository variable** e use o nome `PROMOCAO_AUTOMATICA` com um destes valores:
-
-| Valor | Modo | O que o CT faz quando o portão aprova |
+| Pipeline | Gatilho | Verificação |
 |---|---|---|
-| `false` (recomendado para seguir o passo a passo) | com revisão | abre um Pull Request e uma pessoa decide |
-| `true` | automático | publica na `main`, cria a tag da versão e dispara o CD, sem ninguém |
+| CI | main e PRs | ruff; dados; código, dados, modelo e API, Python 3.11 e 3.12 |
+| CT | lotes/params em PR/main; semanal; manual | KS por atributo; DVC; comparação e portão; promoção por PR |
+| CD | tag v*.*.* | reutiliza CI; build; smoke no container; publicação GHCR |
 
-Dá para trocar o valor depois, em **Edit** (ícone de lápis) na lista de variáveis. Se você não criar a variável, vale o modo
-com revisão, como se fosse `false`. **Com `true`, não faça o passo 6**: o CT precisa gravar direto na `main`.
+Actions configurado com escrita e permissão de abrir PRs; variável de repositório
+`PROMOCAO_AUTOMATICA=false`. Nenhum token é versionado: somente `GITHUB_TOKEN` do Actions.
+O desafio opcional de promoção automática não é ativado. Em PR, CT avalia sem promover.
+Em main/manual, candidato aprovado pode originar PR `ct/novo-campeao`, sujeito a revisão.
 
-**6. (Opcional) Proteja a `main`.** Em **Settings > Branches** (ou **Rulesets**), crie uma regra para `main`:
+Drift: KS p<0,01 em **pelo menos 2 dos 12 atributos**. O cenário 4 seleciona 400 registros
+do quartil superior de elasticidade média da reserva, sem modificar medições ou rótulos.
+O gatilho detecta mudança estatística; isso não demonstra piora nem ganho de desempenho.
 
-- marque **Require a pull request before merging**
-- marque **Require status checks to pass before merging** e adicione os três checks do item 3
-  (eles só aparecem na busca depois do primeiro CI)
+## Cenários e evidências
 
-Com a regra ativa, um CI vermelho bloqueia o merge. Essa regra é incompatível com o modo automático.
+Crie branch a partir da main; aplique `python demo/cenarios.py aplicar N` e abra PR.
+Falhas controladas permanecem em branches e não devem ser integradas.
 
-## Parte 3. Prática com cinco cenários
-
-Cada cenário muda uma coisa no projeto. **Antes de rodar, tente prever** o que vai falhar e em qual etapa.
-
-O roteiro é o mesmo para todos. Troque `N` pelo número do cenário.
-
-```bash
-git switch main && git pull
-git switch -c cenario-N
-python demo/cenarios.py aplicar N
-git add -A
-git commit -m "cenario N"
-git push -u origin cenario-N
-```
-
-Abra o Pull Request no GitHub e acompanhe a aba **Checks**. Ao terminar, feche o PR **sem fazer merge** e volte:
-
-```bash
-git switch main
-git branch -D cenario-N
-```
-
-| N | O que muda | O que você deve observar |
+| Cenário | Mudança | Resultado esperado |
 |---|---|---|
-| 1 | remove a última coluna das entradas do modelo | CI vermelho em **Testes de código** |
-| 2 | nulos e áreas negativas na base de treino | CI vermelho em **Validar os dados brutos** (antes do treino) |
-| 3 | regularização muito forte (`C: 0.00005`) | CI vermelho em **Testes de modelo**: recall abaixo de 0,90 |
-| 4 | lote novo com drift (tamanhos 25% menores) | CI verde. Veja o CT na seção seguinte |
-| 5 | `class_weight` extremo na classe maligna | CI vermelho: recall 1,0, mas precisão abaixo de 0,90 |
+| 1 | remove g4 da matriz de entrada | CI vermelho em código |
+| 2 | tau1 nulo e g1 negativo | validação de dados falha |
+| 3 | max_iter=1 | modelo abaixo do contrato |
+| 4 | seleção de alta elasticidade da reserva | drift; retreino; portão com tabela |
+| 5 | peso 1.000.000 para instável | recall alto e precisão baixa; gate bloqueia |
 
-Para listar os cenários: `python demo/cenarios.py listar`.
+Para E4, aplique cenários 4 e 5 na mesma branch: o lote dispara o CT por evento.
+Ver [ADAPTACAO.md](ADAPTACAO.md) para links E1–E5 e limites.
 
-### Cenário 4: o treinamento contínuo
+## API e container
 
-O lote novo mostra que os dados mudaram. Aqui o CI fica verde, porque os dados são válidos. Quem reage é o **CT**.
+`GET /health`: estado, versão e métricas. `POST /predict`: lista `atributos` com exatamente
+12 números finitos na ordem documentada; faixas e balanço físico também são validados.
+Resposta: `classe` (estavel/instavel), `probabilidade_instavel` e `versao_codigo`.
+Entradas inválidas retornam HTTP 422.
 
-1. No PR do cenário 4, abra o workflow **CT** e o **Summary** do run. Veja o relatório de drift e a tabela do portão
-   (campeão x candidato).
-2. Faça o merge desse PR na `main`. O CT roda de novo e, se o portão aprovar, abre um PR chamado
-   **"ct: novo modelo campeão aprovado no portão de qualidade"**.
-3. O CI desse PR aparece como **Action required**, porque o PR foi aberto pelo `GITHUB_TOKEN`. Abra o PR e clique em
-   **Approve and run workflows**.
-4. Revise o PR (só `models/champion/` muda) e faça o merge. O CT propõe, uma pessoa decide.
-
-### Cenário 4, modo automático: do lote novo à imagem publicada, sem ninguém
-
-No modo anterior, uma pessoa aprova o PR e outra cria a tag. Quando o portão de qualidade já é a regra de negócio
-("só entra modelo com recall e precisão de pelo menos 0,90 e que não piore o campeão"), dá para automatizar tudo. O CT
-passa a publicar o campeão na `main`, criar a tag da nova versão e disparar o CD.
-
-**Antes de começar (uma vez):**
-
-1. **Deixe a `main` sem proteção.** O CT precisa gravar direto na `main`. Em **Settings > Branches**, se houver uma regra para
-   `main` com **Require a pull request before merging**, apague a regra (ou desmarque essa opção). Em **Settings > Rules > Rulesets**,
-   desative ou apague o ruleset que exija Pull Request. Para conferir: na página do repositório, a `main` não deve mostrar
-   "Protected" em Settings > Branches.
-2. **Confirme as permissões do Actions.** Em **Settings > Actions > General > Workflow permissions**, deixe
-   **Read and write permissions** (passo 4 da Parte 2).
-3. **Ligue o modo.** Em **Settings > Secrets and variables > Actions > Variables**, edite a variável `PROMOCAO_AUTOMATICA`
-   (criada no passo 5 da Parte 2) e troque o valor para `true`. Se você ainda não a criou, crie agora com o valor `true`.
-
-**Executando:**
-
-1. Na `main`, atualizada, aplique o cenário 4 e envie o lote:
-
-   ```bash
-   git switch main && git pull
-   python demo/cenarios.py aplicar 4
-   git add -A && git commit -m "lote novo com drift" && git push origin main
-   ```
-
-   Se o `lote_01.csv` já existir de uma tentativa anterior, apague-o antes e faça o commit da remoção.
-2. Abra a aba **Actions** e acompanhe, em cerca de 5 minutos:
-   - **CT**: detecta o drift, retreina, o portão aprova, o robô cria o commit **"ct: promove novo modelo campeão (portão aprovado)"**
-     na `main` e cria a tag da nova versão (a primeira é `v1.0.0`). No **Summary** do run aparece a tag criada.
-   - **CD**, iniciado pelo CT sobre a nova tag: roda o CI, constrói a imagem, faz o teste de fumaça e publica.
-3. Em **Packages** (página inicial do repositório) está a imagem, com a tag da versão e `latest`. Para baixá-la sem login,
-   mude a visibilidade do pacote para **Public** (veja a seção seguinte).
-
-**O que não acontece, de propósito:**
-
-- Se o portão reprovar (cenário 5), o CT falha, nada é publicado e o modelo anterior continua em produção.
-- Se o campeão não mudar (por exemplo, a execução agendada sem dados novos), o CT não cria versão nova.
-- A cada novo campeão a versão sobe um nível (`v1.0.0`, `v1.1.0`, `v1.2.0`...).
-
-Para voltar ao modo com revisão humana, troque o valor da variável `PROMOCAO_AUTOMATICA` para `false` (ou apague-a). Se quiser
-reaplicar a proteção da `main` (passo 6 da Parte 2), faça isso agora.
-
-### Entrega (CD): tag e imagem
-
-No modo automático acima o CT cria a tag sozinho. No modo com revisão, com a `main` verde, crie uma tag de versão:
-
-```bash
-git switch main && git pull
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-O workflow **CD** roda o CI, constrói a imagem, faz o teste de fumaça e só então publica no `ghcr.io`. Depois, em
-**Packages**, abra o pacote e mude a visibilidade para **Public** (Package settings > Change visibility). Então:
-
-```bash
-docker run -p 8000:8000 ghcr.io/SEU_USUARIO/NOME_DO_REPOSITORIO:1.0.0
+```powershell
+docker run --rm -p 8000:8000 ghcr.io/rafaelllobo/mlops-qualidade-industrial:1.0.0
 python demo/smoke_test.py http://localhost:8000
 ```
 
-## Comandos úteis
+Após publicar, a visibilidade do pacote GHCR deve ser Public para permitir pull anônimo.
+O repositório público por si só não garante a visibilidade pública do pacote.
 
-| Comando | Para que serve |
-|---|---|
-| `python -m mlops_demo.data validar` | valida o esquema e os valores de todos os CSVs de `data/raw/` |
-| `python -m mlops_demo.monitor` | compara os lotes novos com a base (teste KS) e diz se o gatilho dispara |
-| `dvc repro` | roda `preparar` e `treinar`, refazendo só o que mudou |
-| `python -m mlops_demo.gate` | compara candidato e campeão. Sai com código 1 se reprovar |
-| `python -m mlops_demo.gate --promover` | copia o candidato para `models/champion/` |
-| `python demo/cenarios.py listar` | lista os cenários de prática |
-| `python demo/gerar_lote.py lote_02 --drift 0.75` | gera um lote novo de exames |
+## Atribuição e limites
 
-## Se algo der errado
-
-| Sintoma | Causa provável | Solução |
-|---|---|---|
-| Jobs falham em 2 segundos, sem passos | conta do GitHub com problema de cobrança | corrija em Settings > Billing e reexecute |
-| CT passa, mas não há PR | permissão do passo 4 da Parte 2 desligada | ligue a permissão e rode o CT de novo (Actions > CT > Run workflow) |
-| CI do PR do campeão em "Action required" | PR aberto pelo `GITHUB_TOKEN` | clique em **Approve and run workflows** |
-| Modo automático: o step "Publicar o novo campeão na main" falha ao enviar o commit para a `main` | a `main` exige Pull Request | desligue a proteção (veja "Antes de começar" do modo automático) |
-| Modo automático ligado, mas o CT abriu um PR | variável com outro nome ou com valor diferente de `true`, ou execução fora da `main` | confira o nome `PROMOCAO_AUTOMATICA`, o valor `true` e a aba Variables |
-| `dvc repro` falha com "No module named" | ambiente virtual inativo | ative o ambiente e rode de novo |
-| `dvc repro` falha com "is git-ignored" | `dvc.lock` no `.gitignore` | não ignore o `dvc.lock` |
-| Cenário não aplica ("trecho não encontrado") | a mudança já foi aplicada nesta branch | volte à `main` e crie outra branch |
-| Sem internet | rede | use `python demo/local.py ci` e `python demo/local.py ct` |
-
-## Observações
-
-- Os dados são pequenos e ficam no Git. Em um projeto real, use `dvc add` com um *remote* (S3, GCS, Azure ou outro).
-- O modelo é simples de propósito, para o treino levar poucos segundos.
-- O `GITHUB_TOKEN` padrão é suficiente aqui. Em produção, o PR de promoção costuma usar um *GitHub App* ou um token
-  dedicado, para o CI rodar sozinho nele.
+Código de partida: repositório de Wesley Santos, preservado no commit inicial deste histórico;
+o original não declara licença no material clonado. A licença CC BY 4.0 se aplica aos dados UCI.
+Rafael Lobo é o responsável pela entrega individual. Codex foi usado para inspeção dos labs,
+adaptação, testes, documentação e execução dos pipelines. Os resultados são evidências técnicas
+da demonstração, sem validação operacional. O enunciado pede atividade em grupo; a aceitação
+da modalidade individual deve ser confirmada com o professor, sem atribuir commits a terceiros.

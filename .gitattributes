@@ -1,3 +1,6 @@
 # Fim de linha LF em todo o repositório (hashes do DVC e scripts iguais em qualquer sistema)
 * text=auto eol=lf
 *.joblib binary
+
+# Preserva os bytes do arquivo UCI para conferir o SHA-256 da fonte.
+/data/source/Data_for_UCI_named.csv -text

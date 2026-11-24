@@ -22,20 +22,20 @@ def decidir(candidato: dict, campeao: dict) -> dict:
     """Aplica as regras do portão a duas dicts de métricas e devolve o veredito."""
     verificacoes = [
         {
-            "regra": f"recall maligno do candidato >= {config.RECALL_MINIMO:.2f}",
-            "ok": candidato["recall_maligno"] >= config.RECALL_MINIMO,
-            "valor": round(candidato["recall_maligno"], 4),
+            "regra": f"recall instavel do candidato >= {config.RECALL_MINIMO:.2f}",
+            "ok": candidato["recall_instavel"] >= config.RECALL_MINIMO,
+            "valor": round(candidato["recall_instavel"], 4),
         },
         {
-            "regra": f"precisão maligna do candidato >= {config.PRECISAO_MINIMA:.2f}",
-            "ok": candidato["precisao_maligna"] >= config.PRECISAO_MINIMA,
-            "valor": round(candidato["precisao_maligna"], 4),
+            "regra": f"precisão instavel do candidato >= {config.PRECISAO_MINIMA:.2f}",
+            "ok": candidato["precisao_instavel"] >= config.PRECISAO_MINIMA,
+            "valor": round(candidato["precisao_instavel"], 4),
         },
         {
-            "regra": "recall maligno do candidato >= recall do campeão (mesmo conjunto)",
-            "ok": candidato["recall_maligno"]
-            >= campeao["recall_maligno"] - config.TOLERANCIA_CAMPEAO,
-            "valor": f"{candidato['recall_maligno']:.4f} x {campeao['recall_maligno']:.4f}",
+            "regra": "recall instavel do candidato >= recall do campeão (mesmo conjunto)",
+            "ok": candidato["recall_instavel"]
+            >= campeao["recall_instavel"] - config.TOLERANCIA_CAMPEAO,
+            "valor": f"{candidato['recall_instavel']:.4f} x {campeao['recall_instavel']:.4f}",
         },
     ]
     return {
@@ -50,10 +50,10 @@ def resumo_markdown(resultado: dict) -> str:
     """Texto em Markdown, usado no GITHUB_STEP_SUMMARY e no corpo do PR."""
     selo = "APROVADO: o candidato pode virar campeão" if resultado["aprovado"] else "REPROVADO"
     linhas = [f"## Portão de qualidade: {selo}", ""]
-    linhas += ["| Modelo | Recall maligno | Precisão maligna | Amostras |", "|---|---|---|---|"]
+    linhas += ["| Modelo | Recall instavel | Precisão instavel | Amostras |", "|---|---|---|---|"]
     for nome in ("campeao", "candidato"):
         m = resultado[nome]
-        celulas = [nome, f"{m['recall_maligno']:.3f}", f"{m['precisao_maligna']:.3f}"]
+        celulas = [nome, f"{m['recall_instavel']:.3f}", f"{m['precisao_instavel']:.3f}"]
         linhas.append("| " + " | ".join([*celulas, str(m["n_amostras"])]) + " |")
     linhas += ["", "| Regra | Resultado | Valor |", "|---|---|---|"]
     for v in resultado["verificacoes"]:
