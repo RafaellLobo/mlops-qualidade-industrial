@@ -1,0 +1,42 @@
+{
+  "repository": "https://github.com/RafaellLobo/mlops-qualidade-industrial",
+  "runs": {
+    "E1": {
+      "url": "https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45409481397",
+      "expected_conclusion": "success"
+    },
+    "E2": {
+      "url": "https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45409558492",
+      "expected_conclusion": "failure"
+    },
+    "E3": {
+      "url": "https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45410898898",
+      "expected_conclusion": "success"
+    },
+    "E4": {
+      "url": "https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45410188783",
+      "expected_conclusion": "failure"
+    },
+    "E5": {
+      "url": "https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45409892618",
+      "expected_conclusion": "success"
+    }
+  },
+  "champion_git_blob_unchanged_across_evidence_branches": "8c41d514b0a526b851e8c40c2e4930798f0fea64",
+  "image": "ghcr.io/rafaelllobo/mlops-qualidade-industrial:1.0.0",
+  "image_digest": "sha256:2526ac6e61fdbab5f4fedcc5ab048ad45bd7ef3e74e48f7a87875c177aa7c4ea",
+  "anonymous_pull": "passed",
+  "container_health": "healthy",
+  "smoke": "passed",
+  "e3_initial_rejected_run": 45410073672,
+  "e3_candidate": {
+    "recall": 0.942560553633218,
+    "precision": 0.9611856033874383,
+    "n": 2200
+  },
+  "e4_candidate": {
+    "recall": 0.9986159169550173,
+    "precision": 0.7855198693522046,
+    "n": 2200
+  }
+}

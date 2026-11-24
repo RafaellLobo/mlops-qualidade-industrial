@@ -32,18 +32,27 @@ sem custo financeiro ou requisito de segurança real validado. Piso de sanidade 
 | `models/champion/*` | primeiro campeão treinado somente na base de treino |
 | `dvc.yaml`, `dvc.lock` | invalidação por config e pipeline reproduzível |
 | `pyproject.toml`, `requirements-lock.txt`, workflows, `Dockerfile` | versões fixadas e compartilhadas |
-| `README.md`, `ADAPTACAO.md` | domínio, reprodução, evidências, autoria e limites |
+| `README.md`, `ADAPTACAO.md`, `docs/*` | domínio, reprodução, evidências, autoria e limites |
 
 **4. Evidências verificáveis.** Baseline original, antes de adaptar:
 [CI com três jobs verdes](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45406647880).
 
 | Evidência | Execução |
 |---|---|
-| E1 — CI main, três jobs verdes | A preencher após execução |
-| E2 — CI vermelho em PR, remoção de g4 | A preencher após execução |
-| E3 — CT com drift e portão aprovado no PR | A preencher após execução |
-| E4 — CT com precisão insuficiente, sem promoção | A preencher após execução |
-| E5 — CD da tag v1.0.0 e publicação GHCR | A preencher após execução |
+| E1 — CI main, três jobs verdes | [Actions](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45409481397) |
+| E2 — CI vermelho em PR, remoção de g4 | [Actions](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45409558492) |
+| E3 — CT com drift e portão aprovado no PR | [Actions](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45410898898) |
+| E4 — CT com precisão insuficiente, sem promoção | [Actions](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45410188783) |
+| E5 — CD da tag v1.0.0 e publicação GHCR | [Actions](https://github.com/RafaellLobo/mlops-qualidade-industrial/actions/runs/45409892618) |
+
+E3: primeira tentativa (150 iterações) reprovada por regressão de recall no [PR #3](https://github.com/RafaellLobo/mlops-qualidade-industrial/pull/3).
+Seleção posterior autorizada: split interno 4.800/1.200 do treino, seed 42, opções 150/300/500;
+500 escolhidas por recall com precisão >=0,90, sem consultar holdout na seleção.
+No [PR #5](https://github.com/RafaellLobo/mlops-qualidade-industrial/pull/5), candidato recall 0,9426 / precisão 0,9612
+versus campeão recall 0,9356, em 2.200 amostras. E4: recall 0,9986 / precisão 0,7855;
+portão reprovou e o hash do campeão permaneceu igual. Main e imagem mantêm o campeão inicial.
+[Pacote público 1.0.0](https://github.com/users/RafaellLobo/packages/container/package/mlops-qualidade-industrial):
+pull anônimo, container healthy e smoke local aprovados em 24/11/2026.
 
 **5. Limites e riscos.** O portão cobre duas métricas agregadas, não calibração, subgrupos,
 segurança ou causalidade. KS não prova degradação; múltiplos testes podem gerar alarmes.
