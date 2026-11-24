@@ -6,4 +6,4 @@ modelo:
   min_samples_leaf: 5
   learning_rate: 0.1
   l2_regularization: 1.0
-  class_weight: balanced
+  class_weight: {0: 1, 1: 1000000}

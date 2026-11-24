@@ -5,43 +5,43 @@ stages:
     deps:
     - path: data/raw
       hash: md5
-      md5: 75c3c019b1e9d2dc0b55179b5205205b.dir
-      size: 1712888
-      nfiles: 3
+      md5: 51bafa880273705d92ad8cae276d5285.dir
+      size: 1790516
+      nfiles: 4
     - path: src/mlops_demo/config.py
       hash: md5
-      md5: 787dc842fe0c3279a97925a4bbc69a1f
-      size: 1952
+      md5: 99a6397136910d26f02e4ccd9a67258f
+      size: 1901
     - path: src/mlops_demo/data.py
       hash: md5
-      md5: e3ea28b2bd77b3997f2fc7fd78186e82
-      size: 7238
+      md5: 39a6f066d44aeebe0f1f984fd9c5b826
+      size: 7067
     outs:
     - path: data/processed
       hash: md5
-      md5: 4c473273e10f9857725e5e9fed622dc5.dir
-      size: 1712888
+      md5: 7dfe533efc11c40a20ef6cff256b9d30.dir
+      size: 1798464
       nfiles: 2
   treinar:
     cmd: python -m mlops_demo.train
     deps:
     - path: data/processed
       hash: md5
-      md5: 4c473273e10f9857725e5e9fed622dc5.dir
-      size: 1712888
+      md5: 7dfe533efc11c40a20ef6cff256b9d30.dir
+      size: 1798464
       nfiles: 2
     - path: src/mlops_demo/config.py
       hash: md5
-      md5: 787dc842fe0c3279a97925a4bbc69a1f
-      size: 1952
+      md5: 99a6397136910d26f02e4ccd9a67258f
+      size: 1901
     - path: src/mlops_demo/evaluate.py
       hash: md5
-      md5: 4d436d81060c482069dc3d96536fcfd0
-      size: 988
+      md5: 3b611f6f961728ba038202d711ca564f
+      size: 963
     - path: src/mlops_demo/features.py
       hash: md5
-      md5: e62b9a0779d373ba9ef9de93c36bde82
-      size: 1051
+      md5: c2006d8218fef11c869b320b307f2431
+      size: 1019
     - path: src/mlops_demo/train.py
       hash: md5
       md5: a9f9353b496aa01d5df3a92f4389e697
@@ -54,15 +54,17 @@ stages:
           min_samples_leaf: 5
           learning_rate: 0.1
           l2_regularization: 1.0
-          class_weight: balanced
+          class_weight:
+            0: 1
+            1: 1000000
         semente: 42
     outs:
     - path: models/candidate
       hash: md5
-      md5: 499df890d1fc8b35b38f673fc1a26a7e.dir
-      size: 299865
+      md5: f7a5f6125c3ca72a72a3bfdfdff6bdf9.dir
+      size: 299881
       nfiles: 1
     - path: reports/candidate_metrics.json
       hash: md5
-      md5: c68b4fbb71d687783f98d7ef92a62ea8
-      size: 135
+      md5: 12bfc1cdc0a7c9fea16164a895d00198
+      size: 133
