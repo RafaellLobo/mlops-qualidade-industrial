@@ -52,7 +52,7 @@ def cenario_2() -> None:
 
 
 def cenario_3() -> None:
-    _substituir(RAIZ / "params.yaml", "max_iter: 150", "max_iter: 1")
+    _substituir(RAIZ / "params.yaml", "max_iter: 500", "max_iter: 1")
 
 
 def cenario_4() -> None:
