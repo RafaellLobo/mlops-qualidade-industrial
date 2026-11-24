@@ -70,3 +70,13 @@ def test_reserva_e_bases_sao_disjuntas():
     chaves = [set(map(tuple, d[config.FEATURES].round(6).to_numpy())) for d in partes]
     assert [len(d) for d in partes] == [6000, 2000, 2000]
     assert all(chaves[i].isdisjoint(chaves[j]) for i in range(3) for j in range(i + 1, 3))
+
+
+def test_fonte_original_confere_sha256_da_proveniencia():
+    import hashlib
+    import json
+
+    fonte = config.RAIZ / "data" / "source"
+    meta = json.loads((fonte / "provenance.json").read_text(encoding="utf-8"))
+    bruto = (fonte / "Data_for_UCI_named.csv").read_bytes()
+    assert hashlib.sha256(bruto).hexdigest() == meta["sha256"]
